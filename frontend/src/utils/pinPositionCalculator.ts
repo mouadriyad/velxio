@@ -17,8 +17,14 @@
  *
  * @param componentId - The DOM ID of the component element
  * @param pinName - The name of the pin (e.g., 'A', 'C', 'GND.1', '13')
- * @param componentX - Component's X position on canvas (pixels)
+ * @param componentX - Component's X position on canvas (pixels). For a
+ *   rotated component this is still the UNROTATED inner-element top-left
+ *   (callers already add the wrapper offset of 4 horizontal / 6 vertical).
  * @param componentY - Component's Y position on canvas (pixels)
+ * @param rotation - Optional CSS rotation in degrees applied to the
+ *   component's wrapper (0 / 90 / 180 / 270). When non-zero the pin
+ *   position is rotated around the wrapper's center so wire endpoints
+ *   land on the visually-rotated pin instead of the old layout-space pin.
  * @returns Absolute canvas coordinates { x, y } or null if pin not found
  */
 export function calculatePinPosition(
@@ -26,6 +32,7 @@ export function calculatePinPosition(
   pinName: string,
   componentX: number,
   componentY: number,
+  rotation: number = 0,
 ): { x: number; y: number } | null {
   // Get the DOM element
   const element = document.getElementById(componentId);
@@ -64,9 +71,46 @@ export function calculatePinPosition(
     return null;
   }
 
-  // Pin coordinates are already in CSS pixels, just add component position
-  const pinX = componentX + pin.x;
-  const pinY = componentY + pin.y;
+  // Unrotated pin position in canvas space.
+  let pinX = componentX + pin.x;
+  let pinY = componentY + pin.y;
+
+  // Rotation: the DynamicComponent wrapper applies
+  //   transform: rotate(<deg>deg);  transform-origin: center center;
+  // around its OWN center (the wrapper, not the inner web component). So
+  // when the user rotates 90° the pin moves on an arc centered on the
+  // wrapper center, not on the component origin or the pin's own axis.
+  //
+  // We compute the wrapper center in canvas space from `offsetWidth /
+  // offsetHeight` of the wrapper — those reflect the layout box and are
+  // UNAFFECTED by CSS transforms, so reading them right after a state
+  // change but before React commits the new transform is safe.
+  //
+  // Wrapper top-left ≈ inner-element top-left minus the wrapper padding
+  // + border. updateWirePositions / recalculateAllWirePositions add
+  // (+4, +6) to component.x / component.y to land on the inner-element
+  // top-left, so the wrapper top-left is (componentX - 4, componentY - 6).
+  // This convention is hardcoded in the store; we honour it here so the
+  // math stays consistent across the rotation boundary.
+  const angle = ((rotation % 360) + 360) % 360;
+  if (angle !== 0) {
+    const wrapper = element.closest('.dynamic-component-wrapper') as HTMLElement | null;
+    if (wrapper) {
+      const wrapperW = wrapper.offsetWidth;
+      const wrapperH = wrapper.offsetHeight;
+      const wrapperLeft = componentX - 4;
+      const wrapperTop = componentY - 6;
+      const pivotX = wrapperLeft + wrapperW / 2;
+      const pivotY = wrapperTop + wrapperH / 2;
+      const theta = (angle * Math.PI) / 180;
+      const cos = Math.cos(theta);
+      const sin = Math.sin(theta);
+      const dx = pinX - pivotX;
+      const dy = pinY - pivotY;
+      pinX = pivotX + (dx * cos - dy * sin);
+      pinY = pivotY + (dx * sin + dy * cos);
+    }
+  }
 
   return { x: pinX, y: pinY };
 }

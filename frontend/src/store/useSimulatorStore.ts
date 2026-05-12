@@ -1839,7 +1839,13 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
       set((state) => ({
         components: state.components.map((c) => (c.id === id ? { ...c, ...updates } : c)),
       }));
-      if (updates.x !== undefined || updates.y !== undefined) {
+      // Re-stamp wire endpoints when the geometry of the component changes:
+      // position (x/y) OR rotation. Without this, rotating a component
+      // leaves every wire anchored to the pre-rotation pin positions, so
+      // the part visually disconnects from its cables.
+      const rotationChanged =
+        updates.properties && 'rotation' in updates.properties;
+      if (updates.x !== undefined || updates.y !== undefined || rotationChanged) {
         get().updateWirePositions(id);
       }
     },
@@ -1947,15 +1953,21 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
         // Boards are rendered directly without a wrapper, so no offset.
         const compX = component ? component.x + 4 : board ? board.x : state.boardPosition.x;
         const compY = component ? component.y + 6 : board ? board.y : state.boardPosition.y;
+        // Boards never rotate; components carry their angle in properties.rotation.
+        const rotation = component ? Number(component.properties?.rotation) || 0 : 0;
 
         const updatedWires = state.wires.map((wire) => {
           const updated = { ...wire };
           if (wire.start.componentId === componentId) {
-            const pos = calculatePinPosition(componentId, wire.start.pinName, compX, compY);
+            const pos = calculatePinPosition(
+              componentId, wire.start.pinName, compX, compY, rotation,
+            );
             if (pos) updated.start = { ...wire.start, x: pos.x, y: pos.y };
           }
           if (wire.end.componentId === componentId) {
-            const pos = calculatePinPosition(componentId, wire.end.pinName, compX, compY);
+            const pos = calculatePinPosition(
+              componentId, wire.end.pinName, compX, compY, rotation,
+            );
             if (pos) updated.end = { ...wire.end, x: pos.x, y: pos.y };
           }
           return updated;
@@ -1982,11 +1994,13 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
           : startBoard
             ? startBoard.y
             : state.boardPosition.y;
+        const startRotation = startComp ? Number(startComp.properties?.rotation) || 0 : 0;
         const startPos = calculatePinPosition(
           wire.start.componentId,
           wire.start.pinName,
           startX,
           startY,
+          startRotation,
         );
         updated.start = startPos
           ? { ...wire.start, x: startPos.x, y: startPos.y }
@@ -1997,7 +2011,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
         const endBoard = state.boards.find((b) => b.id === wire.end.componentId);
         const endX = endComp ? endComp.x + 4 : endBoard ? endBoard.x : state.boardPosition.x;
         const endY = endComp ? endComp.y + 6 : endBoard ? endBoard.y : state.boardPosition.y;
-        const endPos = calculatePinPosition(wire.end.componentId, wire.end.pinName, endX, endY);
+        const endRotation = endComp ? Number(endComp.properties?.rotation) || 0 : 0;
+        const endPos = calculatePinPosition(
+          wire.end.componentId, wire.end.pinName, endX, endY, endRotation,
+        );
         updated.end = endPos
           ? { ...wire.end, x: endPos.x, y: endPos.y }
           : { ...wire.end, x: endX, y: endY };
@@ -2151,22 +2168,29 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
       get().pushCommand(
         {
           description: 'Rotate component',
-          execute: () =>
+          execute: () => {
             set((s) => ({
               components: s.components.map((c) =>
                 c.id === id
                   ? { ...c, properties: { ...c.properties, rotation: nextRotation } }
                   : c,
               ),
-            })),
-          undo: () =>
+            }));
+            // Wires must follow the part on undo / redo too, otherwise a
+            // Ctrl+Z after a rotate would re-show the post-rotation pin
+            // positions against the now-restored unrotated component.
+            get().updateWirePositions(id);
+          },
+          undo: () => {
             set((s) => ({
               components: s.components.map((c) =>
                 c.id === id
                   ? { ...c, properties: { ...c.properties, rotation: prevRotation } }
                   : c,
               ),
-            })),
+            }));
+            get().updateWirePositions(id);
+          },
         },
         { applyNow: false },
       );
