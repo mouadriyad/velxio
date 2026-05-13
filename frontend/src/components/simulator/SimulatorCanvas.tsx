@@ -19,6 +19,7 @@ import { WireLayer } from './WireLayer';
 import type { SegmentHandle, WaypointHandle, AlignmentGuide } from './WireLayer';
 import { ElectricalOverlay } from '../analog-ui/ElectricalOverlay';
 import { BoardOnCanvas } from './BoardOnCanvas';
+import { CanvasMinimap } from './CanvasMinimap';
 import { PartSimulationRegistry } from '../../simulation/parts';
 import { PROPERTY_CHANGE_EVENT, type PropertyChangeDetail } from '../../simulation/parts/partUtils';
 import { isSpiceMapped } from '../../simulation/spice/componentToSpice';
@@ -2497,6 +2498,22 @@ export const SimulatorCanvas = ({ headerSlot }: SimulatorCanvasProps = {}) => {
               }
               return null;
             })()}
+
+          {/* Minimap — small overview of the world with a draggable viewport
+              rectangle, anchored to the canvas-content bottom-right corner.
+              Sits inside .canvas-content (not .canvas-world) so it stays
+              fixed while the world pans / zooms. */}
+          <CanvasMinimap
+            pan={pan}
+            zoom={zoom}
+            setPan={(p) => {
+              panRef.current = p;
+              setPan(p);
+            }}
+            components={components}
+            boards={boards}
+            viewportRef={canvasRef}
+          />
         </div>
       </div>
 
