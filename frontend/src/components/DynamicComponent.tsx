@@ -14,6 +14,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { ComponentMetadata } from '../types/component-metadata';
 import { useSimulatorStore } from '../store/useSimulatorStore';
+import { useElectricalStore } from '../store/useElectricalStore';
 import { PartSimulationRegistry } from '../simulation/parts';
 import { isBoardComponent, boardPinToNumber } from '../utils/boardPinMapping';
 
@@ -58,6 +59,14 @@ export const DynamicComponent: React.FC<DynamicComponentProps> = ({
   const handleComponentEvent = useSimulatorStore((s) => s.handleComponentEvent);
   const running = useSimulatorStore((s) => s.running);
   const simulator = useSimulatorStore((s) => s.simulator);
+  // Board-less SPICE circuits (digital / analog gallery) have no MCU to
+  // run, so `running` is always false — but interactive parts like
+  // slide-switches and pushbuttons should still show a pointer cursor
+  // and let the user click them. We treat board-less + un-paused as
+  // "interactive" so the cursor + dialog gating mirror the MCU mode.
+  const boardCount = useSimulatorStore((s) => s.boards.length);
+  const electricalPaused = useElectricalStore((s) => s.paused);
+  const interactionRunning = running || (boardCount === 0 && !electricalPaused);
   // hexEpoch increments each time a new hex is loaded, triggering a fresh
   // attachEvents call (and re-registration of I2C devices on the new bus).
   // We intentionally do NOT depend on `running` so that I2C displays and
@@ -350,7 +359,7 @@ export const DynamicComponent: React.FC<DynamicComponentProps> = ({
         position: 'absolute',
         left: `${x}px`,
         top: `${y}px`,
-        cursor: running && isInteractive ? 'pointer' : 'move',
+        cursor: interactionRunning && isInteractive ? 'pointer' : 'move',
         border: isSelected ? '2px dashed #007acc' : '2px solid transparent',
         borderRadius: '4px',
         padding: '4px',

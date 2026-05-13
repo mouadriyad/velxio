@@ -1,4 +1,5 @@
 import { useSimulatorStore, getEsp32Bridge } from '../../store/useSimulatorStore';
+import { useElectricalStore } from '../../store/useElectricalStore';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Undo2, Redo2 } from 'lucide-react';
@@ -238,10 +239,23 @@ export const SimulatorCanvas = ({ headerSlot }: SimulatorCanvasProps = {}) => {
   const panRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
 
+  // Board-less SPICE circuits (analog / digital examples with no MCU on
+  // the canvas) have no concept of a board to "start", so `running` is
+  // always false. But the simulation IS effectively live the moment the
+  // engine has solved at least once — switches and buttons should toggle
+  // their own state on click instead of opening the property dialog.
+  // We treat board-less + un-paused as "interaction-running" so the same
+  // gating logic that suppresses the dialog for MCU-running mode also
+  // covers board-less circuits.
+  const electricalPaused = useElectricalStore((s) => s.paused);
+  const interactionRunning = running || (boards.length === 0 && !electricalPaused);
+
   // Refs that mirror state/props for use inside touch event closures
   // (touch listeners are added imperatively and can't access current React state)
   const runningRef = useRef(running);
   runningRef.current = running;
+  const interactionRunningRef = useRef(interactionRunning);
+  interactionRunningRef.current = interactionRunning;
   const componentsRef = useRef(components);
   componentsRef.current = components;
   const boardPositionRef = useRef(boardPosition);
@@ -471,7 +485,9 @@ export const SimulatorCanvas = ({ headerSlot }: SimulatorCanvasProps = {}) => {
       // ── 2. Interactive web component during simulation → let browser synthesize mouse events ──
       //    (potentiometer knobs, button presses, etc. need mousedown/mouseup synthesis)
       //    touch-action:none on .canvas-content already prevents browser scroll/zoom.
-      if (runningRef.current) {
+      // Board-less SPICE circuits piggy-back on the same path so a tap on
+      // a slide-switch reaches the wokwi element and triggers its toggle.
+      if (interactionRunningRef.current) {
         const webComp = target?.closest('.web-component-container');
         if (webComp) {
           touchPassthroughRef.current = true;
@@ -767,11 +783,13 @@ export const SimulatorCanvas = ({ headerSlot }: SimulatorCanvasProps = {}) => {
             }
           } else if (touchId !== '__board__') {
             // Short tap on component → open property dialog or sensor panel.
-            // While the simulator is running, components stay interactive —
-            // only sensor panels may open; property editing is disabled.
+            // While the simulator is running (MCU or board-less SPICE),
+            // components stay interactive — only sensor panels may open;
+            // property editing is disabled so the tap reaches the
+            // wokwi-element underneath and toggles it.
             const component = componentsRef.current.find((c) => c.id === touchId);
             if (component) {
-              if (runningRef.current) {
+              if (interactionRunningRef.current) {
                 if (SENSOR_CONTROLS[component.metadataId] !== undefined) {
                   setSensorControlComponentId(touchId);
                   setSensorControlMetadataId(component.metadataId);
@@ -1392,11 +1410,13 @@ export const SimulatorCanvas = ({ headerSlot }: SimulatorCanvasProps = {}) => {
         } else if (draggedComponentId !== '__board__') {
           const component = components.find((c) => c.id === draggedComponentId);
           if (component) {
-            if (running) {
-              // During simulation only sensor panels open on click — every
-              // other component is interactive (pushbutton, switch, pot, …)
-              // and must handle its own clicks, so we suppress the property
-              // dialog entirely.
+            if (interactionRunning) {
+              // During simulation (MCU running OR board-less SPICE active)
+              // only sensor panels open on click — every other component
+              // is interactive (pushbutton, switch, pot, …) and must
+              // handle its own clicks, so we suppress the property
+              // dialog entirely. This is the path that also unblocks
+              // wokwi-slide-switch toggling in the digital examples.
               if (SENSOR_CONTROLS[component.metadataId] !== undefined) {
                 setSensorControlComponentId(draggedComponentId);
                 setSensorControlMetadataId(component.metadataId);
