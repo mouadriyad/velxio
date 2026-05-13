@@ -95,7 +95,7 @@
     "ai": {
       "label": "AI agent",
       "title": "Powered by AI agents.",
-      "subtitle": "A multi-step agent runs inside the editor. It reads your canvas, writes code, places parts and wires them up — all driven by natural language. DeepSeek-V4-Flash and Gemini 2.5 under the hood.",
+      "subtitle": "A multi-step agent runs inside the editor. It reads your canvas, writes code, places parts and wires them up — all driven by natural language. Backed by frontier LLMs auto-routed for cost and reliability.",
       "cards": {
         "wire": {
           "title": "Drop & wire components",
@@ -114,31 +114,31 @@
     "pricing": {
       "label": "Pricing",
       "title": "Free to run circuits. Pay for the AI.",
-      "subtitle": "The simulator stays free forever. Subscriptions only raise the AI agent’s daily message quota.",
+      "subtitle": "The simulator stays free forever. Plans only raise the AI agent quota — credits roll over each day.",
       "popular": "Most popular",
       "tiers": {
         "free": {
           "name": "Free",
-          "tagline": "Everything in the simulator, forever.",
-          "f1": "20 AI messages per day",
-          "f2": "All boards, all components",
-          "f3": "Save and share projects",
-          "cta": "Open the editor"
+          "tagline": "Discover the simulator + light AI help.",
+          "f1": "20 daily AI credits (up to 300/month)",
+          "f2": "All 19 boards + 48+ components",
+          "f3": "Real CPU emulation, public projects",
+          "cta": "Get started"
         },
         "pro": {
           "name": "Pro",
-          "tagline": "For makers building real projects.",
-          "f1": "300 AI messages per day",
-          "f2": "Faster compile + simulation",
-          "f3": "Priority email support",
+          "tagline": "For makers building real projects with AI.",
+          "f1": "400 daily AI credits (up to 12,000/month)",
+          "f2": "Private projects + premium components",
+          "f3": "Priority compile queue, cancel anytime",
           "cta": "Subscribe to Pro"
         },
         "pro_max": {
           "name": "Pro Max",
           "tagline": "For power users and small teams.",
-          "f1": "700 AI messages per day",
+          "f1": "1,000 daily AI credits (up to 30,000/month)",
           "f2": "Early access to new boards",
-          "f3": "Dedicated chat with the maintainer",
+          "f3": "Direct support from the maintainer",
           "cta": "Choose Pro Max"
         }
       }

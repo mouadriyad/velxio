@@ -95,7 +95,7 @@
     "ai": {
       "label": "Agente IA",
       "title": "Alimentato da agenti IA.",
-      "subtitle": "Un agente multi-step gira dentro l’editor. Legge il tuo canvas, scrive codice, posiziona componenti e li collega — tutto guidato dal linguaggio naturale. DeepSeek-V4-Flash e Gemini 2.5 sotto il cofano.",
+      "subtitle": "Un agente multi-step gira dentro l’editor. Legge il tuo canvas, scrive codice, posiziona componenti e li collega — tutto tramite linguaggio naturale. Supportato da LLM di frontiera instradati automaticamente per costo e disponibilità.",
       "cards": {
         "wire": {
           "title": "Posiziona e collega",
@@ -114,31 +114,31 @@
     "pricing": {
       "label": "Prezzi",
       "title": "Gratis per i circuiti. Paghi per l’IA.",
-      "subtitle": "Il simulatore resta gratis per sempre. Le sottoscrizioni alzano solo la quota giornaliera dell’agente IA.",
+      "subtitle": "Il simulatore resta gratis per sempre. I piani alzano solo la quota dell’agente IA — i crediti si rinnovano ogni giorno.",
       "popular": "Più popolare",
       "tiers": {
         "free": {
           "name": "Free",
-          "tagline": "Tutto il simulatore, per sempre.",
-          "f1": "20 messaggi IA al giorno",
-          "f2": "Tutte le schede, tutti i componenti",
-          "f3": "Salva e condividi progetti",
-          "cta": "Apri l’editor"
+          "tagline": "Scopri il simulatore + aiuto IA leggero.",
+          "f1": "20 crediti IA giornalieri (fino a 300/mese)",
+          "f2": "Tutte le 19 schede + 48+ componenti",
+          "f3": "Emulazione CPU reale, progetti pubblici",
+          "cta": "Inizia"
         },
         "pro": {
           "name": "Pro",
           "tagline": "Per maker che costruiscono progetti reali.",
-          "f1": "300 messaggi IA al giorno",
-          "f2": "Compilazione + simulazione più veloci",
-          "f3": "Supporto email prioritario",
+          "f1": "400 crediti IA giornalieri (fino a 12.000/mese)",
+          "f2": "Progetti privati + componenti premium",
+          "f3": "Coda di compilazione prioritaria, cancella quando vuoi",
           "cta": "Abbonati a Pro"
         },
         "pro_max": {
           "name": "Pro Max",
           "tagline": "Per power user e piccoli team.",
-          "f1": "700 messaggi IA al giorno",
+          "f1": "1.000 crediti IA giornalieri (fino a 30.000/mese)",
           "f2": "Accesso anticipato alle nuove schede",
-          "f3": "Chat dedicata con il maintainer",
+          "f3": "Supporto diretto dal maintainer",
           "cta": "Scegli Pro Max"
         }
       }

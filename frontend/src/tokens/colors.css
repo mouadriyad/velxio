@@ -40,7 +40,13 @@
   --amber-600: #c93400;
 
   /* Semantic — backgrounds (dark theme baseline) */
-  --color-bg-canvas:    var(--gray-1000);
+  /* Canvas uses gray-950 (#0a0a0c), NOT gray-1000 (#000000). Pure-black
+   * canvas collides with the slightly-lighter card surfaces (gray-900
+   * #141416) and creates a harsh transition wherever a page's content
+   * ends before the `min-height: 100vh` wrapper does (long docs page,
+   * sparse user profile, etc.). gray-1000 stays available in the palette
+   * for intentional black uses (overlays, code-block accents). */
+  --color-bg-canvas:    var(--gray-950);
   --color-bg-surface-1: var(--gray-900);
   --color-bg-surface-2: var(--gray-850);
   --color-bg-surface-3: var(--gray-800);

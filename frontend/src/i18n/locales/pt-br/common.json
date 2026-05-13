@@ -95,7 +95,7 @@
     "ai": {
       "label": "Agente IA",
       "title": "Movido por agentes de IA.",
-      "subtitle": "Um agente multi-etapas roda dentro do editor. Ele lê seu canvas, escreve código, coloca componentes e os conecta — tudo guiado por linguagem natural. DeepSeek-V4-Flash e Gemini 2.5 por baixo.",
+      "subtitle": "Um agente multi-etapas roda dentro do editor. Ele lê seu canvas, escreve código, coloca componentes e os conecta — tudo por linguagem natural. Suportado por LLMs de fronteira auto-roteados por custo e disponibilidade.",
       "cards": {
         "wire": {
           "title": "Encaixe e conecte",
@@ -114,31 +114,31 @@
     "pricing": {
       "label": "Preços",
       "title": "Grátis para rodar circuitos. Pague pela IA.",
-      "subtitle": "O simulador continua grátis para sempre. Assinaturas apenas aumentam a cota diária do agente de IA.",
+      "subtitle": "O simulador continua grátis para sempre. Os planos só aumentam a cota do agente de IA — os créditos renovam todo dia.",
       "popular": "Mais popular",
       "tiers": {
         "free": {
           "name": "Free",
-          "tagline": "Tudo no simulador, para sempre.",
-          "f1": "20 mensagens de IA por dia",
-          "f2": "Todas as placas, todos os componentes",
-          "f3": "Salvar e compartilhar projetos",
-          "cta": "Abrir o editor"
+          "tagline": "Descubra o simulador + ajuda leve da IA.",
+          "f1": "20 créditos diários de IA (até 300/mês)",
+          "f2": "Todas as 19 placas + 48+ componentes",
+          "f3": "Emulação real de CPU, projetos públicos",
+          "cta": "Começar"
         },
         "pro": {
           "name": "Pro",
           "tagline": "Para makers construindo projetos reais.",
-          "f1": "300 mensagens de IA por dia",
-          "f2": "Compilação + simulação mais rápida",
-          "f3": "Suporte prioritário por email",
+          "f1": "400 créditos diários de IA (até 12.000/mês)",
+          "f2": "Projetos privados + componentes premium",
+          "f3": "Fila de compilação prioritária, cancele a qualquer momento",
           "cta": "Assinar Pro"
         },
         "pro_max": {
           "name": "Pro Max",
           "tagline": "Para power users e times pequenos.",
-          "f1": "700 mensagens de IA por dia",
+          "f1": "1.000 créditos diários de IA (até 30.000/mês)",
           "f2": "Acesso antecipado a novas placas",
-          "f3": "Chat dedicado com o mantenedor",
+          "f3": "Suporte direto do mantenedor",
           "cta": "Escolher Pro Max"
         }
       }

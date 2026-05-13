@@ -95,7 +95,7 @@
     "ai": {
       "label": "KI-Agent",
       "title": "Angetrieben von KI-Agenten.",
-      "subtitle": "Ein Multi-Step-Agent läuft im Editor. Er liest dein Canvas, schreibt Code, platziert Bauteile und verkabelt sie — alles per natürlicher Sprache. DeepSeek-V4-Flash und Gemini 2.5 unter der Haube.",
+      "subtitle": "Ein Multi-Step-Agent läuft im Editor. Er liest dein Canvas, schreibt Code, platziert Bauteile und verkabelt sie — alles per natürlicher Sprache. Unterstützt durch führende LLMs, automatisch geroutet nach Kosten und Verfügbarkeit.",
       "cards": {
         "wire": {
           "title": "Bauteile platzieren & verdrahten",
@@ -114,31 +114,31 @@
     "pricing": {
       "label": "Preise",
       "title": "Schaltungen kostenlos. Du zahlst für die KI.",
-      "subtitle": "Der Simulator bleibt für immer kostenlos. Abos erhöhen nur das tägliche Nachrichtenkontingent des KI-Agenten.",
+      "subtitle": "Der Simulator bleibt für immer kostenlos. Pläne erhöhen nur das KI-Agent-Kontingent — Credits werden täglich erneuert.",
       "popular": "Am beliebtesten",
       "tiers": {
         "free": {
           "name": "Free",
-          "tagline": "Der gesamte Simulator, für immer.",
-          "f1": "20 KI-Nachrichten pro Tag",
-          "f2": "Alle Boards, alle Komponenten",
-          "f3": "Projekte speichern und teilen",
-          "cta": "Editor öffnen"
+          "tagline": "Entdecke den Simulator + leichte KI-Hilfe.",
+          "f1": "20 KI-Credits pro Tag (bis zu 300/Monat)",
+          "f2": "Alle 19 Boards + 48+ Komponenten",
+          "f3": "Echte CPU-Emulation, öffentliche Projekte",
+          "cta": "Loslegen"
         },
         "pro": {
           "name": "Pro",
           "tagline": "Für Maker mit echten Projekten.",
-          "f1": "300 KI-Nachrichten pro Tag",
-          "f2": "Schnellere Kompilierung + Simulation",
-          "f3": "Priorisierter E-Mail-Support",
+          "f1": "400 KI-Credits pro Tag (bis zu 12.000/Monat)",
+          "f2": "Private Projekte + Premium-Komponenten",
+          "f3": "Priorisierte Kompilier-Warteschlange, jederzeit kündbar",
           "cta": "Pro abonnieren"
         },
         "pro_max": {
           "name": "Pro Max",
           "tagline": "Für Power-User und kleine Teams.",
-          "f1": "700 KI-Nachrichten pro Tag",
+          "f1": "1.000 KI-Credits pro Tag (bis zu 30.000/Monat)",
           "f2": "Früher Zugriff auf neue Boards",
-          "f3": "Direkter Chat mit dem Maintainer",
+          "f3": "Direkter Support vom Maintainer",
           "cta": "Pro Max wählen"
         }
       }
