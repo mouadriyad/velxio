@@ -20,19 +20,28 @@ export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       '@pro': proOverlayPath,
+      // Stable alias for OSS modules that the pro overlay needs to import
+      // (e.g. lib/proRoutes for route registration). Using an alias instead
+      // of a relative path makes the import location-independent: it works
+      // whether the overlay is symlinked into src/pro/ (local dev — Rollup
+      // resolves the import from the real overlay path) or physically
+      // COPYed into src/pro/ (Docker build). Either way `@velxio/<x>`
+      // points at the OSS src tree.
+      '@velxio': path.resolve(__dirname, 'src'),
     },
-    // Local dev only: when the pro overlay is wired in via a junction
+    // When the pro overlay is wired in via a junction/symlink
     // (Windows pattern: `frontend/src/pro` → `velxio-prod/pro/frontend/src/pro`),
-    // Vite's default resolver walks symlinks to the real path, which breaks
-    // relative imports like `../../store/...` from inside the overlay back
-    // into the OSS sibling dirs. Keeping the symlink-as-path fixes that.
+    // Rollup's default behavior walks the symlink to the real path and
+    // resolves imports from THAT location — but the real overlay path
+    // has no node_modules nearby AND its `../../<x>` paths land outside
+    // the OSS src tree. Preserving symlinks keeps the overlay logically
+    // anchored inside src/pro/.
     //
-    // We do NOT enable this during `vite build` (Docker / CI): production
-    // builds COPY the overlay tree into the OSS frontend so there are no
-    // symlinks involved, and turning preserveSymlinks on there breaks
-    // Rollup's resolution of relative imports across the overlay/upstream
-    // boundary (real bug observed in Dockerfile.prod stage 1).
-    preserveSymlinks: command === 'serve' && !!process.env.VITE_PRO_BUILD,
+    // In Docker builds the overlay is COPYed in physically (no symlinks
+    // to follow), so this flag is effectively a no-op there. We keep it
+    // gated on VITE_PRO_BUILD so OSS-only builds without the overlay
+    // see the default behavior.
+    preserveSymlinks: !!process.env.VITE_PRO_BUILD,
   },
   server: {
     proxy: {

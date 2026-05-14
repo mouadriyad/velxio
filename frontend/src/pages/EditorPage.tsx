@@ -22,14 +22,12 @@ import { SimulatorCanvas } from '../components/simulator/SimulatorCanvas';
 import { SerialMonitor } from '../components/simulator/SerialMonitor';
 import { Oscilloscope } from '../components/simulator/Oscilloscope';
 import { AppHeader } from '../components/layout/AppHeader';
-import { SaveProjectModal } from '../components/layout/SaveProjectModal';
-import { LoginPromptModal } from '../components/layout/LoginPromptModal';
+import { triggerSaveAction } from '../lib/proSaveAction';
 import { GitHubStarBanner } from '../components/layout/GitHubStarBanner';
 import { useSimulatorStore, DEFAULT_BOARD_POSITION } from '../store/useSimulatorStore';
 import { useEditorStore } from '../store/useEditorStore';
 import { useCompileLogsStore } from '../store/useCompileLogsStore';
 import { useOscilloscopeStore } from '../store/useOscilloscopeStore';
-import { useAuthStore } from '../store/useAuthStore';
 import { useProjectStore } from '../store/useProjectStore';
 import { useAutoSaveProject } from '../hooks/useAutoSaveProject';
 import type { CompilationLog } from '../utils/compilationLogger';
@@ -88,8 +86,6 @@ export const EditorPage: React.FC = () => {
   const compileLogs = useCompileLogsStore((s) => s.logs);
   const setCompileLogs = useCompileLogsStore((s) => s.setLogs);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(BOTTOM_PANEL_DEFAULT);
-  const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [showStarBanner, setShowStarBanner] = useState(false);
 
   // ── Electrical simulation subscriber (one-time, idempotent) ───────────────
@@ -148,15 +144,14 @@ export const EditorPage: React.FC = () => {
   const [canvasHeaderSlot, setCanvasHeaderSlot] = useState<HTMLDivElement | null>(null);
   // Default to 'code' on mobile — show the editor so users can write/view code
   const [mobileView, setMobileView] = useState<'code' | 'circuit'>('code');
-  const user = useAuthStore((s) => s.user);
 
+  // Save is dispatched to the pro overlay, which inspects auth state and
+  // shows the right modal (Save vs Login prompt). In OSS without the
+  // overlay this is a no-op today and becomes the .vlx Export entry
+  // point in Phase 4 of the OSS split.
   const handleSaveClick = useCallback(() => {
-    if (!user) {
-      setLoginPromptOpen(true);
-    } else {
-      setSaveModalOpen(true);
-    }
-  }, [user]);
+    triggerSaveAction();
+  }, []);
 
   const handleNewClick = useCallback(() => {
     if (
@@ -641,8 +636,6 @@ export const EditorPage: React.FC = () => {
         </div>
       </div>
 
-      {saveModalOpen && <SaveProjectModal onClose={() => setSaveModalOpen(false)} />}
-      {loginPromptOpen && <LoginPromptModal onClose={() => setLoginPromptOpen(false)} />}
       {showStarBanner && <GitHubStarBanner onClose={handleDismissStarBanner} />}
       {/* Slot reserved for the private pro overlay (e.g. agent chat panel).
           Self-hosted builds without an overlay see nothing here. */}

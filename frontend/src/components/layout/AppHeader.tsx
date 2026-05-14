@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../store/useAuthStore';
 import { useProjectStore } from '../../store/useProjectStore';
 import { ShareModal } from './ShareModal';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -64,39 +63,18 @@ const AutoSaveIndicator: React.FC<{ state: AutoSaveState }> = ({ state }) => {
 };
 
 export const AppHeader: React.FC<AppHeaderProps> = ({ autoSave }) => {
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-  const navigate = useNavigate();
   const location = useLocation();
   const currentProject = useProjectStore((s) => s.currentProject);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const localize = useLocalizedHref();
   const currentLocale = useCurrentLocale();
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
-
-  const handleLogout = async () => {
-    setDropdownOpen(false);
-    await logout();
-    navigate(localize('/'));
-  };
 
   const isActive = (path: string) =>
     location.pathname === localize(path) ? ' header-nav-link-active' : '';
@@ -238,133 +216,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ autoSave }) => {
             </button>
           )}
 
-          {/* Auth UI — wrapped in a header-auth slot so the private overlay
-              can portal-inject its own version (subscribed badge, billing
-              menu items, etc.). In Phase 3 the entire auth UI moves to the
-              overlay and this block renders nothing in OSS. */}
-          <div data-velxio-slot="header-auth" style={{ display: 'contents' }}>
-          {user ? (
-            <div style={{ position: 'relative' }} ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen((v) => !v)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #555',
-                  borderRadius: 20,
-                  padding: '3px 10px 3px 6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  color: '#ccc',
-                  fontSize: 13,
-                }}
-              >
-                {user.avatar_url ? (
-                  <img
-                    src={user.avatar_url}
-                    alt=""
-                    style={{ width: 22, height: 22, borderRadius: '50%' }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: '50%',
-                      background: '#0e639c',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      color: '#fff',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {user.username[0].toUpperCase()}
-                  </div>
-                )}
-                <span className="header-username-text">{user.username}</span>
-              </button>
-
-              {dropdownOpen && (
-                <div
-                  data-velxio-slot="user-menu"
-                  style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: '110%',
-                    background: '#252526',
-                    border: '1px solid #3c3c3c',
-                    borderRadius: 6,
-                    minWidth: 150,
-                    zIndex: 100,
-                    boxShadow: '0 4px 12px rgba(0,0,0,.4)',
-                  }}
-                >
-                  <Link
-                    to={localize(`/${user.username}`)}
-                    onClick={() => setDropdownOpen(false)}
-                    style={{
-                      display: 'block',
-                      padding: '9px 14px',
-                      color: '#ccc',
-                      textDecoration: 'none',
-                      fontSize: 13,
-                    }}
-                  >
-                    {t('header.auth.myProjects')}
-                  </Link>
-                  <div style={{ borderTop: '1px solid #3c3c3c' }} />
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      width: '100%',
-                      background: 'none',
-                      border: 'none',
-                      padding: '9px 14px',
-                      color: '#ccc',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontSize: 13,
-                    }}
-                  >
-                    {t('header.auth.signOut')}
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Link
-                to={localize('/login')}
-                style={{
-                  color: '#ccc',
-                  padding: '4px 10px',
-                  fontSize: 13,
-                  textDecoration: 'none',
-                  border: '1px solid #555',
-                  borderRadius: 4,
-                }}
-              >
-                {t('header.auth.signIn')}
-              </Link>
-              <Link
-                to={localize('/register')}
-                style={{
-                  color: '#fff',
-                  padding: '4px 10px',
-                  fontSize: 13,
-                  textDecoration: 'none',
-                  background: '#0e639c',
-                  borderRadius: 4,
-                }}
-              >
-                {t('header.auth.signUp')}
-              </Link>
-            </div>
-          )}
-          </div>
+          {/* Auth UI lives in the pro overlay — sign-in/sign-up buttons
+              when anonymous, user dropdown when logged in. The overlay's
+              mountPro() portals its HeaderAuth component into this slot
+              via mountIntoSlot('header-auth'). In OSS without the
+              overlay this slot stays empty, which is correct because the
+              OSS image has no auth backend either. */}
+          <div data-velxio-slot="header-auth" style={{ display: 'contents' }} />
 
           {/* Mobile hamburger */}
           <button

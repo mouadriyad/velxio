@@ -17,10 +17,6 @@ import './components/velxio-components/FlipFlopElements';
 import './components/velxio-components/RaspberryPi3Element';
 import './components/velxio-components/Bmp280Element';
 import './components/velxio-components/EPaperElement';
-// Side-effect: registers the default auto-save implementation with the
-// skeleton hook. In Phase 3 of the OSS split the implementation moves to
-// the private overlay and this import disappears from the OSS bundle.
-import './hooks/autoSaveImpl';
 import App from './App.tsx';
 
 // Configure monaco-editor for offline use via local static assets
