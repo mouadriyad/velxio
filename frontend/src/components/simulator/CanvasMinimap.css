@@ -70,8 +70,8 @@
 @media (max-width: 720px) {
   /* On phones the minimap eats too much of the canvas; shrink it. */
   .canvas-minimap {
-    width: 140px !important;
-    height: 105px !important;
+    width: 90px !important;
+    height: 68px !important;
     bottom: 12px;
     right: 12px;
   }

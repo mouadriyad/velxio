@@ -28,8 +28,8 @@ import type { Component } from '../../types/components';
 import type { BoardInstance } from '../../types/board';
 import './CanvasMinimap.css';
 
-const MINIMAP_W = 140;
-const MINIMAP_H = 105;
+const MINIMAP_W = 100;
+const MINIMAP_H = 75;
 const WORLD_W = 4000;
 const WORLD_H = 3000;
 const SCALE_X = MINIMAP_W / WORLD_W;
@@ -80,6 +80,17 @@ export const CanvasMinimap: React.FC<Props> = ({
   const rectY = (-pan.y / zoom) * SCALE_Y;
   const rectW = (vp.w / zoom) * SCALE_X;
   const rectH = (vp.h / zoom) * SCALE_Y;
+
+  // Clamp the rectangle to the minimap bounds so it never paints outside
+  // (transiently during pinch-zoom-out, and persistently when the user
+  // pans past a world edge).  We hit-test against these clamped values
+  // too — otherwise clicking the visible red rect can fall outside the
+  // unclamped logical rect and erroneously trigger a teleport instead
+  // of a drag.
+  const clampedW = Math.min(rectW, MINIMAP_W);
+  const clampedH = Math.min(rectH, MINIMAP_H);
+  const clampedX = Math.max(0, Math.min(MINIMAP_W - clampedW, rectX));
+  const clampedY = Math.max(0, Math.min(MINIMAP_H - clampedH, rectY));
 
   // Drag state. We use a ref + window listeners (rather than React's
   // onMouseMove on the minimap div) so the gesture keeps working even if
@@ -137,10 +148,10 @@ export const CanvasMinimap: React.FC<Props> = ({
       const localX = e.clientX - rect.left;
       const localY = e.clientY - rect.top;
       const insideRect =
-        localX >= rectX &&
-        localX <= rectX + rectW &&
-        localY >= rectY &&
-        localY <= rectY + rectH;
+        localX >= clampedX &&
+        localX <= clampedX + clampedW &&
+        localY >= clampedY &&
+        localY <= clampedY + clampedH;
       if (insideRect) {
         // Drag mode — record start state, window listeners do the rest.
         dragRef.current = {
@@ -155,7 +166,7 @@ export const CanvasMinimap: React.FC<Props> = ({
         teleportTo(localX / SCALE_X, localY / SCALE_Y);
       }
     },
-    [rectX, rectY, rectW, rectH, pan, teleportTo],
+    [clampedX, clampedY, clampedW, clampedH, pan, teleportTo],
   );
 
   useEffect(() => {
@@ -185,13 +196,6 @@ export const CanvasMinimap: React.FC<Props> = ({
       window.removeEventListener('pointercancel', onUp);
     };
   }, [zoom, setPan, clampPan]);
-
-  // Clamp the rendered rectangle to the minimap bounds so it never paints
-  // outside (happens transiently during pinch-zoom-out).
-  const clampedX = Math.max(0, Math.min(MINIMAP_W - rectW, rectX));
-  const clampedY = Math.max(0, Math.min(MINIMAP_H - rectH, rectY));
-  const clampedW = Math.min(rectW, MINIMAP_W);
-  const clampedH = Math.min(rectH, MINIMAP_H);
 
   return (
     <div
