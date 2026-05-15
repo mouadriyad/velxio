@@ -11,7 +11,6 @@
  */
 import { describe, it, expect } from 'vitest';
 import { buildInputFromStore } from '../simulation/spice/storeAdapter';
-import type { StoreSnapshot } from '../simulation/spice/storeAdapter';
 import type { PinSourceState } from '../simulation/spice/types';
 
 describe('storeAdapter — MCU-driven capacitor step response', () => {

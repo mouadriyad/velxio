@@ -70,6 +70,14 @@ export function startSimulation(): () => void {
         ),
     },
   );
+  // Phase 1d #3 — pre-boot the WASM engine the moment the editor
+  // mounts.  Without this, the first solve (typically the user's
+  // first canvas edit) pays the full WASM init cost (~2-5 s) and the
+  // canvas appears frozen.  By kicking init now, the Worker boots
+  // while the user looks at the empty canvas; by the time they wire
+  // anything, the engine is warm.
+  void getMixedModeScheduler().start();
+
   const unsubService = service.start();
   const unsubAdc = connectAnalogInputsToMcu();
   const unsubEdges = connectMcuEdgesToService(service);
