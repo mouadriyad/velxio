@@ -49,6 +49,26 @@ import { NgSpiceInteractive } from './wasm/NgSpiceInteractive';
 import type { PinState, SpiceVoltageSource } from '../PinResolver';
 
 /**
+ * The subset of NgSpiceInteractive the scheduler depends on.  Spelled
+ * out as an interface so unit tests can inject a mock without booting
+ * the WASM worker.
+ */
+export interface NgSpiceClient {
+  init(): Promise<void>;
+  loadNetlist(netlist: string): Promise<void>;
+  command(cmd: string): Promise<{ rc: number; stdout: string[]; stderr: string[] }>;
+  alter(sourceName: string, dcValue: number): Promise<unknown>;
+  readVec(name: string): Promise<{
+    name: string;
+    real: Float64Array;
+    imag: Float64Array | null;
+    complex: boolean;
+    unit: string;
+  }>;
+  dispose(): void;
+}
+
+/**
  * Identity of a "pin of interest" — a place a SpiceResolvedPinResolver
  * is watching for voltage changes.  The (boardId, pinName) → SPICE-net
  * mapping is built lazily as components register.
@@ -75,10 +95,13 @@ function pinKey(componentId: string, componentPinName: string): string {
 }
 
 class MixedModeSchedulerImpl implements SpiceVoltageSource {
-  private engine: NgSpiceInteractive | null = null;
+  private engine: NgSpiceClient | null = null;
+  private engineFactory: () => NgSpiceClient = () => new NgSpiceInteractive();
   private nextToken: SubscriptionToken = 1;
   private subscriptions = new Map<SubscriptionToken, NodeSubscription>();
   private voltages = new Map<string, number>();
+  /** `${componentId}:${pinName}` → SPICE net name (from NetlistBuilder). */
+  private pinNetMap = new Map<string, string>();
   private running = false;
   private initPromise: Promise<void> | null = null;
 
@@ -95,16 +118,68 @@ class MixedModeSchedulerImpl implements SpiceVoltageSource {
   async start(): Promise<void> {
     if (this.running) return;
     if (!this.engine) {
-      this.engine = new NgSpiceInteractive();
+      this.engine = this.engineFactory();
     }
     if (!this.initPromise) {
       this.initPromise = this.engine.init();
     }
     await this.initPromise;
     this.running = true;
-    // TODO Phase 1b — wire up the alter+tran+readVec loop here.
-    // Build initial netlist via NetlistBuilder, send to engine via
-    // loadNetlist, then enter the event-driven update cycle.
+  }
+
+  /**
+   * Load a SPICE netlist plus the (component, pin) → SPICE-net mapping
+   * produced by `NetlistBuilder.buildNetlist`.  Replaces any previously
+   * loaded circuit.  Subsequent `resolveDc` / `alter` / `onMcuPinChange`
+   * calls operate on this circuit.
+   *
+   * Idempotent in the sense that calling it again with a fresh circuit
+   * simply re-loads — the engine is kept warm.  Pin-net mapping keys
+   * use the NetlistBuilder convention `${componentId}:${pinName}`.
+   */
+  async loadCircuit(netlist: string, pinNetMap: Map<string, string>): Promise<void> {
+    if (!this.engine) {
+      this.engine = this.engineFactory();
+    }
+    if (!this.initPromise) {
+      this.initPromise = this.engine.init();
+    }
+    await this.initPromise;
+    await this.engine.loadNetlist(netlist);
+    this.pinNetMap = new Map(pinNetMap);
+    // Voltages cache is now stale — clear it.  resolveDc() will repopulate.
+    this.voltages.clear();
+  }
+
+  /**
+   * Run a DC operating-point solve and publish the resolved voltage for
+   * every (component, pin) currently in the pinNetMap.  Subscribers
+   * fire as voltages land in the cache.  Ground pins (canonical net
+   * `0`) are published as 0 V without a readVec round-trip.
+   */
+  async resolveDc(): Promise<void> {
+    if (!this.engine) {
+      throw new Error('MixedModeScheduler.resolveDc(): call loadCircuit first');
+    }
+    await this.engine.command('op');
+    for (const [key, net] of this.pinNetMap) {
+      const idx = key.indexOf(':');
+      if (idx < 0) continue;
+      const componentId = key.slice(0, idx);
+      const pinName = key.slice(idx + 1);
+      if (net === '0') {
+        this.publishVoltage(componentId, pinName, 0);
+        continue;
+      }
+      try {
+        const vec = await this.engine.readVec(`v(${net})`);
+        const v = vec.real[0] ?? 0;
+        this.publishVoltage(componentId, pinName, v);
+      } catch {
+        // Net wasn't part of this analysis — skip silently so a single
+        // disconnected component pin doesn't break the whole resolve.
+      }
+    }
   }
 
   /**
@@ -132,6 +207,8 @@ class MixedModeSchedulerImpl implements SpiceVoltageSource {
     }
     this.initPromise = null;
     this.subscriptions.clear();
+    this.voltages.clear();
+    this.pinNetMap.clear();
   }
 
   /**
@@ -193,16 +270,31 @@ class MixedModeSchedulerImpl implements SpiceVoltageSource {
   }
 
   /**
-   * Notify the scheduler that an MCU pin changed state.  Phase 1b will
-   * translate this into `alter V_<board>_<pin> dc <value>` + a short
-   * `tran` step, then read affected nodes and dispatch to subscribers.
+   * Notify the scheduler that an MCU pin changed state.  Issues an
+   * `alter V_<board>_<pin> dc <voltage>` to ngspice, re-runs the DC
+   * operating point, and refreshes the voltage cache + subscribers for
+   * every (component, pin) in the current pinNetMap.
    *
-   * Phase 1b skeleton: no-op.  Component handlers continue to receive
-   * events from the legacy PinManager path until Phase 1b continued.
+   * Caller is responsible for converting the digital state to a
+   * voltage: typically `state ? vcc : 0`, but a board with output
+   * impedance or open-drain semantics may use a different mapping.
+   *
+   * Returns a promise that resolves after the resulting `resolveDc`
+   * completes.  When `start()` hasn't been called yet (no engine), the
+   * call is a silent no-op so legacy code paths that fire this
+   * unconditionally don't crash.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onMcuPinChange(_boardId: string, _pinName: string, _state: boolean, _vcc: number): void {
-    // intentionally empty
+  async onMcuPinChange(
+    boardId: string,
+    pinName: string,
+    state: boolean,
+    vcc: number,
+  ): Promise<void> {
+    if (!this.engine) return;
+    const sourceName = `V_${boardId}_${pinName}`;
+    const voltage = state ? vcc : 0;
+    await this.engine.alter(sourceName, voltage);
+    await this.resolveDc();
   }
 }
 
@@ -219,6 +311,19 @@ export function getMixedModeScheduler(): MixedModeSchedulerImpl {
 export function __resetMixedModeScheduler(): void {
   if (instance) instance.dispose();
   instance = null;
+}
+
+/** Test helper — inject a fake NgSpiceClient so `loadCircuit` /
+ *  `resolveDc` can be exercised without a real WASM worker. The factory
+ *  is invoked the next time the scheduler instantiates its engine.
+ *  Must be called BEFORE `start()` / `loadCircuit()`. */
+export function __setSchedulerEngineFactoryForTests(
+  factory: () => NgSpiceClient,
+): void {
+  const sched = getMixedModeScheduler() as unknown as {
+    engineFactory: () => NgSpiceClient;
+  };
+  sched.engineFactory = factory;
 }
 
 export type MixedModeScheduler = MixedModeSchedulerImpl;
